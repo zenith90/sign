@@ -1,0 +1,93 @@
+<?php
+require_once("../src/Sign.php");
+
+$s = new Sign("key");
+$data = [
+	"name" => "Jon",
+	"age" => "32",
+	0 => "test"
+];
+echo $s->generateSign($data)
+echo "<br>";
+$data = json_encode($data);
+echo $s->generateSign($data);
+echo "<br>";
+
+//也支持链接调用
+
+$s = new Sign()
+echo $s->setKey("key")->generateSign($data);
+echo "<br>";
+
+
+//加解密方法如下
+
+require_once("../src/Tool/Mcrypt.php");
+
+$m = new Tool\Mcrypt();
+$str = "Abc!@#$%Z^&*()_+{}|/`http:\/\/";
+echo $m->encrypt($str);
+echo "<br>";
+echo $m->decrypt($m->encrypt($str));
+
+
+/**
+ * openssl加解密类
+ */
+require_once("../src/Tool/OpensslAes.php");
+$str = "test";
+//也可以设置加密密钥最长16位
+$key = '123456';
+Tool\OpensslAes::setKey($key);
+$encrypt_str = Tool\OpensslAes::encrypt($str);
+$decrypt_str = Tool\OpensslAes::decrypt($encrypt_str);
+echo $encrypt_str;
+echo $decrypt_str;
+
+
+/**
+ * opensslRsa加解密类
+ * #生成私钥
+ * openssl genrsa -out rsa_private_key.pem 1024 
+ * #Java开发者需要将私钥转换成PKCS8格式(备注：使用Java开发后台，客户端iOS也要中这个) 
+ * openssl pkcs8 -topk8 -inform PEM -in rsa_private_key.pem -outform PEM -nocrypt -out rsa_private_key_pkcs8.pem
+ * #生成公钥
+ * openssl rsa -in rsa_private_key.pem -pubout -out rsa_public_key.pem
+ * 参考文献：https://www.jianshu.com/p/a79c78e17f6f
+ */
+require_once("../src/Tool/OpensslRsa.php");
+$str = "test";
+$public_key_file="./opensslkey/rsa_public_key.pem";
+$private_key_file="./opensslkey/rsa_private_key_pkcs8.pem";
+//设置公钥文件路径
+OpensslRsa::setPublicKeyFilePath($public_key_file);
+//设置私钥文件路径
+OpensslRsa::setPrivateKeyFilePath($private_key_file);
+//私钥加密
+$encrypt_str = OpensslRsa::privateEncrypt($str);
+echo $encrypt_str.PHP_EOL;
+//公钥解密
+$descrypt_str = OpensslRsa::publicDescrypt($encrypt_str);
+echo $descrypt_str.PHP_EOL;
+//公钥加密
+$encrypt_str = OpensslRsa::publicEncrypt($str);
+echo $encrypt_str.PHP_EOL;
+//私钥解密
+$descrypt_str = OpensslRsa::privateDescrypt($encrypt_str);
+echo $descrypt_str.PHP_EOL;
+//签名及验证
+if (($sign = OpensslRsa::sign($str)) !== false) {
+	echo PHP_EOL;
+	echo $sign . PHP_EOL;
+	$verify_result = OpensslRsa::verify($str,$sign);
+	if ($verify_result == 1) {
+		echo "vild";
+	}elseif ($verify_result == 0) {
+		echo "invild"
+	}else{
+		echo "Error:" . openssl_error_string();
+	}
+}else{
+	throw new \Exception("Error:" . openssl_error_string());
+}
+
